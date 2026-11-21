@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>행사상품 프로모션 안내 (PWA)</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="stylesheet" href="./styles.css">
+  <!-- 오픈소스 바코드 스캐너 라이브러리 (Html5-Qrcode) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Google Identity Services (Sign In with Google) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header (P1 모바일 2행 단순화 구조) -->
+    <header class="app-header">
+      <div class="header-row-primary">
+        <h1 id="app-title">행사상품 조회</h1>
+        <button id="btn-auth-status" class="badge-auth badge-auth-none" title="직원 인증 설정">
+          <span id="auth-status-text">미인증</span>
+        </button>
+      </div>
+      <div class="header-row-secondary">
+        <span id="env-badge" class="badge-env badge-env-test">TEST</span>
+        <span class="header-dot">·</span>
+        <span id="sync-status">Google Sheets 연결 대기</span>
+      </div>
+    </header>
+
+    <!-- Scanner Section -->
+    <section class="scanner-section">
+      <div class="scanner-box">
+        <div id="scanner-reader"></div>
+        <div id="scanner-placeholder" class="scanner-placeholder">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+          </svg>
+          <p>카메라를 켜고 바코드를 스캔하세요</p>
+        </div>
+      </div>
+      <div class="scanner-controls">
+        <button id="btn-toggle-scan" class="btn-primary">
+          <span id="scan-btn-text">스캔 시작</span>
+        </button>
+        <button id="btn-refresh-data" class="btn-secondary" title="행사 데이터 새로고침">
+          새로고침
+        </button>
+      </div>
+    </section>
+
+    <!-- Manual Barcode Input Section -->
+    <section class="manual-input-section">
+      <input type="text" id="input-barcode" class="input-barcode" placeholder="바코드 직접 입력 (예: 8801043000010)" inputmode="numeric">
+      <button id="btn-search-barcode" class="btn-search">조회</button>
+    </section>
+
+    <!-- Result Section -->
+    <section class="result-section">
+      <div id="result-container">
+        <div class="empty-state">
+          <p>바코드를 스캔하거나 직접 입력하면<br>실시간 행사 혜택이 표시됩니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>행사 데이터: <strong id="product-count">0</strong>건 로드됨</span>
+      <span style="color:#94a3b8; font-size:0.75rem;">직원 조회 전용</span>
+    </footer>
+  </div>
+
+  <!-- Auth Settings Modal -->
+  <div id="auth-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>직원 본인 인증</h3>
+        <button id="btn-modal-close" class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted); font-size:0.8rem; line-height:1.4;">
+          실제 Google Sheets 행사를 조회하려면 사전 승인된 직원 신원 인증이 필요합니다.
+        </p>
+
+        <!-- [운영 기본] 공식 Google 계정 로그인 -->
+        <div class="google-auth-section" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-weight:700; font-size:0.88rem; margin-bottom:8px; color:#1e293b;">Google 계정으로 직원 로그인</div>
+          <div id="g-signin-btn-container" style="display:flex; justify-content:center; min-height:44px; align-items:center;">
+            <span style="font-size:0.75rem; color:#94a3b8;">Google 로그인 버튼 로딩 중...</span>
+          </div>
+          <div id="google-user-info" style="display:none; font-size:0.8rem; color:#166534; margin-top:8px; background:#dcfce7; padding:6px; border-radius:6px;"></div>
+        </div>
+
+        <div id="auth-modal-msg" style="display:none; font-size:0.8rem; padding:6px 10px; border-radius:6px;"></div>
+
+        <!-- [개발자/테스트 보조] 수동 세션 토큰 입력 (접이식) -->
+        <details style="border-top:1px solid #e2e8f0; padding-top:8px; margin-top:6px;">
+          <summary style="font-size:0.78rem; color:#64748b; cursor:pointer; font-weight:600;">[개발/테스트 전용] 수동 세션 토큰 입력</summary>
+          <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+            <select id="select-auth-type" style="font-size:0.8rem; padding:6px;">
+              <option value="session">서버 발급 직원 세션 토큰 (HMAC)</option>
+              <option value="id_token">수동 Google OAuth ID Token</option>
+            </select>
+            <input type="password" id="input-auth-token" placeholder="테스트용 토큰 문자열을 붙여넣으세요">
+            <button id="btn-save-auth" class="btn-primary" style="background:#475569; color:#fff; padding:6px; font-size:0.78rem;">수동 토큰 적용</button>
+          </div>
+        </details>
+
+        <div style="font-size:0.72rem; color:#94a3b8; text-align:center;">
+          토큰은 브라우저 <code>sessionStorage</code>에만 보관되며 소스코드에 하드코딩되지 않습니다.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-clear-auth" class="btn-secondary" style="background:#fee2e2; color:#991b1b; width:100%;">로그아웃 (인증 해제)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Scripts -->
+  <script src="./shared/utils.js"></script>
+  <script src="./shared/data-matcher.js"></script>
+  <script src="./shared/sheets-api.js"></script>
+  <script src="./shared/scanner-engine.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
+
