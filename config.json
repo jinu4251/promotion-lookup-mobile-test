@@ -1,0 +1,23 @@
+﻿{
+    "cache":  {
+                  "ttlMinutes":  0,
+                  "enabled":  false
+              },
+    "environment":  "test",
+    "dataSource":  {
+                       "sheetsApiUrl":  "https://script.google.com/macros/s/AKfycbw2cKbETl7dyllb4Sj9MaFQ1E0memT3D_5KcjN8ezXsa5nBw3Ctu8S10u8E4YZe5Xatew/exec",
+                       "mode":  "sheets"
+                   },
+    "appTitle":  "[TEST] 행사상품 프로모션 안내",
+    "scanner":  {
+                    "preferredEngine":  "html5-qrcode",
+                    "qrbox":  {
+                                  "height":  180,
+                                  "width":  260
+                              },
+                    "fps":  15
+                },
+    "auth":  {
+                 "googleClientId":  "739141197343-q0ngro33u2k043qsddcdnv7e30qsogav.apps.googleusercontent.com"
+             }
+}
